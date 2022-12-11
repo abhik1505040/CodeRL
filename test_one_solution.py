@@ -88,9 +88,13 @@ def eval_and_save_problems(args):
             all_sols.append(curr_sol)
 
         print("\n", "*" * 50, f"Generated Solution #{o_idx + 1} results", "*" * 50)
-        print(all_results)
+        for k_ind, k in enumerate(all_results):
+            print(f"Test case #{k_ind + 1}:", k)
+        
         print("\n", "*" * 50, f"Generated Solution #{o_idx + 1} errors (if any)", "*" * 50)
-        print(all_errors)
+        
+        for k_ind, k in enumerate(all_errors):
+            print(f"Test case #{k_ind + 1}:", k)
         
         save_results = {real_index : {'results': all_results, 'errors': all_errors, 'sols': all_sols}} 
         with open(args.output_path + '/{}.pkl'.format(real_index), "wb") as file:
