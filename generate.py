@@ -141,6 +141,11 @@ def main(args):
         test_case_path = os.path.join(prob_path, "input_output.json")
         prompt_path = os.path.join(prob_path, "question.txt")
         starter_path = os.path.join(prob_path, "starter_code.py")
+
+        print("-" * 50, "Problem Description", "-" * 50)
+        with open(prompt_path) as f:
+          print("".join(f.readlines()))
+
         if args.critic_scores and not args.gt_solutions: 
             solutions_path = os.path.join(prob_path, "gen_solutions.json")
         else:
@@ -198,6 +203,8 @@ def main(args):
 
                     for output_id in output_ids: 
                         output_programs.append(tokenizer.decode(output_id, skip_special_tokens=True))
+                        print("*" * 50, f"Generated Solution #{len(output_programs)}", "*" * 50)
+                        print(output_programs[-1])
 
                 saved_codes = {}
                 saved_codes[problem_id] = {'code': output_programs, 'prompt': input_text}

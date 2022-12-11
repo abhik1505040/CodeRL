@@ -87,6 +87,11 @@ def eval_and_save_problems(args):
             all_errors.append(curr_errors)
             all_sols.append(curr_sol)
 
+        print("\n", "*" * 50, f"Generated Solution #{o_idx + 1} results", "*" * 50)
+        print(all_results)
+        print("\n", "*" * 50, f"Generated Solution #{o_idx + 1} errors (if any)", "*" * 50)
+        print(all_errors)
+        
         save_results = {real_index : {'results': all_results, 'errors': all_errors, 'sols': all_sols}} 
         with open(args.output_path + '/{}.pkl'.format(real_index), "wb") as file:
             pkl.dump(save_results, file)  
