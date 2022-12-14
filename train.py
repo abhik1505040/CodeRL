@@ -112,10 +112,10 @@ def get_dataset(args):
         fnames = fnames[:50]
 
     if args.model in ['codet5-base', 'codet5-large']:
-        max_tokens = 512 
-        max_src_tokens = 600
+        max_tokens = args.max_tokens 
+        max_src_tokens = args.max_tokens + (600 - 512)
     else:
-        max_tokens = 1024
+        max_tokens = args.max_tokens * 2
         max_src_tokens = -1
     
     train_data = APPSBaseDataset(

@@ -36,6 +36,7 @@ parser.add_argument('--db', default=False, action='store_true', help='set to tur
 # Logging
 parser.add_argument('--log-freq', default=1, type=int, help='save training log after this number of training steps')
 parser.add_argument('--save-freq', default=200, type=int, help='save model checkpoints after this number of training steps')
+parser.add_argument('--max_tokens', default=512, type=int, help='max tokens')
 parser.add_argument('--save_total_limit', default=2, type=int, help='total of number checkpoints to keep; only keep the latest ones') 
 
 args = parser.parse_args()
