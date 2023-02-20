@@ -85,6 +85,38 @@ def generate_critic_inputs(args, test_case_path, prompt_path, solutions_path, to
 
     return all_texts, all_codes, gt_errors
 
+
+def generate_compiler_result(solution, prob_path):
+    try:
+        curr_results, _, _, _ = run_test(prob_path=prob_path, test=solution)
+        fixed = []
+
+        for e in curr_results:
+            if isinstance(e, np.ndarray):
+                e = e.item(0)
+            if isinstance(e, np.bool_):
+                e = bool(e)
+            fixed.append(e)
+        curr_results = fixed
+
+    except Exception as e:
+        print(f"test framework exception = {repr(e)}{e}\n")
+        # Assume runtime error in this case
+        return -1
+
+    # Compile error
+    if any(k == [-2] for k in curr_results):
+        return -2
+    # Runtime error
+    elif any(k == [-1] for k in curr_results):
+        return -1
+    # Failed unit tests
+    elif any(k == [False] for k in curr_results):
+        return False
+    # Passed all unit tests
+    else:
+        return True
+    
 def main(args):
 
     argsdict = vars(args)
@@ -199,12 +231,37 @@ def main(args):
                     for output_id in output_ids: 
                         output_programs.append(tokenizer.decode(output_id, skip_special_tokens=True))
 
-                saved_codes = {}
-                saved_codes[problem_id] = {'code': output_programs, 'prompt': input_text}
+                if not args.generate_samples_and_baseline:
+                    saved_codes = {}
+                    saved_codes[problem_id] = {'code': output_programs, 'prompt': input_text}
 
-                codes_loc = os.path.join(args.output_path, f"{problem_id}.json")
-                with open(codes_loc, "w") as f:
-                    json.dump(saved_codes, f)
+                    codes_loc = os.path.join(args.output_path, f"{problem_id}.json")
+                    with open(codes_loc, "w") as f:
+                        json.dump(saved_codes, f)
+                else:
+                    # First write the generated solutions
+                    gen_solutions = []
+                    for sol in output_programs:
+                        gen_solutions.append({
+                            "code": sol,
+                            "result": generate_compiler_result(sol, prob_path)
+                        })
+
+                    output_path = os.path.join(prob_path, "gen_solutions.json")
+                    with open(output_path, 'w') as f:
+                        json.dump(gen_solutions, f)
+
+                    # Generate baseline solution
+                    output_ids = model.generate(input_ids, max_length=args.max_len)
+                    baseline = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+                    baseline_solution = [{
+                        "code": baseline,
+                        "result": generate_compiler_result(baseline, prob_path)
+                    }]
+
+                    baseline_path = os.path.join(prob_path, "baseline_solutions.json")
+                    with open(baseline_path, 'w') as f:
+                        json.dump(baseline_solution, f)
 
     if args.critic_scores: 
         print("Total number of samples: {}".format(len(all_gts)))
