@@ -47,6 +47,12 @@ def eval_and_save_problems(args):
         gen_codes = json.load(file)[str(real_index)]['code']
 
     test_file = os.path.join(problem, "input_output.json")
+    
+    meta_file = os.path.join(problem, "metadata.json")
+    difficulty = "unknown"
+    if os.path.isfile(meta_file):
+        difficulty = json.load(open(meta_file)).get("difficulty", difficulty)
+
     tests = json.load(open(test_file, 'r'))
     nb_tests = len(tests['inputs'])
     if args.max_tests!=-1 and nb_tests > args.max_tests: 
@@ -87,7 +93,7 @@ def eval_and_save_problems(args):
             all_errors.append(curr_errors)
             all_sols.append(curr_sol)
 
-        save_results = {real_index : {'results': all_results, 'errors': all_errors, 'sols': all_sols}} 
+        save_results = {real_index : {'difficulty': difficulty, 'results': all_results, 'errors': all_errors, 'sols': all_sols}} 
         with open(args.output_path + '/{}.pkl'.format(real_index), "wb") as file:
             pkl.dump(save_results, file)  
 
@@ -99,7 +105,7 @@ def eval_and_save_problems(args):
     [True] = passed test case
     '''
 
-    save_results = {real_index : {'results': all_results, 'errors': all_errors, 'sols': all_sols}} 
+    save_results = {real_index : {'difficulty': difficulty, 'results': all_results, 'errors': all_errors, 'sols': all_sols}} 
     pkl.dump(save_results,  open(args.output_path + '/{}.pkl'.format(real_index), "wb"))                    
 
 def main(args):    

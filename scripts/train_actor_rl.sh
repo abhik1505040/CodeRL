@@ -10,9 +10,8 @@ python \
     train.py \
     --batch-size-per-replica 1 --grad-acc-steps 4 \
     --epochs 10 --lr 2e-5 \
-    --save-freq 1000 --log-freq 10 --save_total_limit 5 \
+    --save-freq 1000 --log-freq 10 --save_total_limit 20 \
     --fp16 \
     --tuning_mode rl --model codet5-large \
-    --model_path models/codet5_finetuned_codeRL \
-    --relative_returns  \
-    --db 
+    --model_path /media/rifat/HDD/CodeRL_exps/codet5-large_none_bs1x4_lr2e-05/checkpoint-293000 \
+    --relative_returns

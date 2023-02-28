@@ -579,7 +579,7 @@ def call_method(method, inputs):
     inputs_line_iterator = iter(inputs.split("\n"))
 
     # TODO: the below line was originally commented 
-    #sys.setrecursionlimit(10000)
+    # sys.setrecursionlimit(10000)
 
     # @patch('builtins.input', side_effect=inputs.split("\n"))
     @patch('builtins.open', mock_open(read_data=inputs))

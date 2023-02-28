@@ -16,6 +16,7 @@ import numpy as np
 from collections import Counter 
 from transformers import RobertaTokenizer, T5ForConditionalGeneration
 import datasets.utils as dsutils
+from utils.testing_util import run_test
 
 def generate_prompt(args, test_case_path, prompt_path, solutions_path, tokenizer, 
                     starter_path=None):
@@ -104,14 +105,15 @@ def generate_compiler_result(solution, prob_path):
         # Assume runtime error in this case
         return -1
 
+    results = np.asarray(curr_results)
     # Compile error
-    if any(k == [-2] for k in curr_results):
+    if np.any(results == -2):
         return -2
     # Runtime error
-    elif any(k == [-1] for k in curr_results):
+    elif np.any(results == -1):
         return -1
     # Failed unit tests
-    elif any(k == [False] for k in curr_results):
+    elif np.any(results == False):
         return False
     # Passed all unit tests
     else:
@@ -218,7 +220,14 @@ def main(args):
                                                               max_length=args.source_len)).unsqueeze(0).cuda()
 
                 num_loops = int(args.num_seqs / args.num_seqs_per_iter)
-                output_programs = [] 
+                output_programs = []
+                
+                output_path = os.path.join(prob_path, "gen_solutions.json")
+                baseline_path = os.path.join(prob_path, "baseline_solutions.json")
+                                                                               
+                if (args.generate_samples_and_baseline and os.path.exists(output_path)
+                    and os.path.exists(baseline_path)): continue
+
                 for i in tqdm(range(num_loops), ncols=0, total=num_loops, leave=False):
                     output_ids = model.generate(
                         input_ids, 
@@ -247,7 +256,7 @@ def main(args):
                             "result": generate_compiler_result(sol, prob_path)
                         })
 
-                    output_path = os.path.join(prob_path, "gen_solutions.json")
+                    
                     with open(output_path, 'w') as f:
                         json.dump(gen_solutions, f)
 
@@ -259,7 +268,6 @@ def main(args):
                         "result": generate_compiler_result(baseline, prob_path)
                     }]
 
-                    baseline_path = os.path.join(prob_path, "baseline_solutions.json")
                     with open(baseline_path, 'w') as f:
                         json.dump(baseline_solution, f)
 
