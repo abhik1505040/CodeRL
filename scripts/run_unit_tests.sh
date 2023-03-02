@@ -5,8 +5,8 @@
 ## SPDX-License-Identifier: BSD-3-Clause
 ## For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
 ## '''##
-code_path=outputs/codes/
-output_path=outputs/test_results/
+code_path=outputs/codes_actor/
+output_path=outputs/test_results_actor/
 test_path=data/APPS/test/ 
 
 example_tests=0 # 0: run hidden unit tests; 1: run example unit tests 
@@ -29,8 +29,7 @@ for (( i=$start;i<$end;i++ )) ; do
         --code_path ${code_path} \
         --output_path ${output_path} \
         --test_path $test_path \
-        --exa
-        mple_tests $example_tests \
+        --example_tests $example_tests \
         --i $i 
     ) &        
     if (( $index % $threads == 0 )); then wait; fi 

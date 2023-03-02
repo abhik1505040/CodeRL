@@ -12,6 +12,5 @@ python \
     --epochs 10 --lr 2e-5 \
     --save-freq 1000 --log-freq 10 --save_total_limit 5 \
     --fp16 \
-    --tuning_mode none --model codet5-large \
-    --db 
+    --tuning_mode none --model codet5-large
     
