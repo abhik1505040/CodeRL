@@ -30,9 +30,9 @@ def print_results(root_dir):
     results_summary["all"] = list(chain(*(list(k) for k in results_summary.values())))
     
     print("=" * 100)
-    print(f"pass@{generated_solutions} summary")
+    print(f"pass@{generated_solutions} (percentage) summary")
     for k, v in results_summary.items():
-        print(f"\t{k}:", round(np.mean(v), 4))
+        print(f"\t{k}:", round(np.mean(v) * 100, 4))
 
 
 if __name__ == "__main__":
