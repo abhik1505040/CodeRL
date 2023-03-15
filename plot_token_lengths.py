@@ -4,6 +4,7 @@ from transformers import AutoTokenizer
 import glob
 import json
 import os
+import numpy as np
 from tqdm import tqdm
 from datasets.utils import reindent_code
 
@@ -11,13 +12,27 @@ def frequency_graph(scores, x_axis, plot_dir):
     os.makedirs(plot_dir, exist_ok=True)
     output_path = os.path.join(plot_dir, x_axis.replace(" ", "_") + ".html")
 
+    print("*" * 100)
+    print(
+        x_axis + ">", 
+        "max:", np.max(scores), 
+        "min:", np.min(scores), 
+        "avg:", np.mean(scores),
+        "samples over max_seq_length:", sum(k > 512 for k in scores)
+    )
+
     layout = go.Layout(plot_bgcolor='rgba(0,0,0,0)')
     fig = go.Figure(layout=layout)
 
     fig.add_trace(
         go.Histogram(
             histfunc='count',
-            x=scores
+            x=scores,
+            xbins=dict(
+                start=0,
+                end=2000,
+                size=1
+            )
         )
     )
 
@@ -41,7 +56,7 @@ def frequency_graph(scores, x_axis, plot_dir):
         legend=dict(x=0.8, y=1.0,traceorder='normal',font=dict(color='black', size=14), bordercolor='black', borderwidth=1)
     )
 
-    plotly.offline.plot(fig, output_path)
+    plotly.offline.plot(fig, filename=output_path)
 
 
 def main(root_dir, plot_dir, tokenizer_path='Salesforce/codet5-base'):
@@ -52,8 +67,8 @@ def main(root_dir, plot_dir, tokenizer_path='Salesforce/codet5-base'):
     output_lengths = []
 
     for problem_name in tqdm(problem_dirs):
-        question_fname = os.path.join(root_dir, problem_name, "question.txt")
-        sols_fname = os.path.join(root_dir, problem_name, "solutions.json")            
+        question_fname = os.path.join(problem_name, "question.txt")
+        sols_fname = os.path.join(problem_name, "solutions.json")            
         if (not os.path.isfile(question_fname)) or (not os.path.isfile(sols_fname)):
             continue
             
@@ -62,7 +77,7 @@ def main(root_dir, plot_dir, tokenizer_path='Salesforce/codet5-base'):
         with open(sols_fname) as f:
             solutions = json.load(f)
 
-        starter_code = os.path.join(root_dir, problem_name, "starter_code.py")    
+        starter_code = os.path.join(problem_name, "starter_code.py")    
         if (os.path.isfile(starter_code)):
             answer_type = "\nUse Call-Based format\n"
             with open(starter_code, 'r') as f:
@@ -78,6 +93,7 @@ def main(root_dir, plot_dir, tokenizer_path='Salesforce/codet5-base'):
             sol = reindent_code(solution)
             output_lengths.append(len(tokenizer.tokenize(sol)))
 
+    del tokenizer
     frequency_graph(input_lengths, "Tokenized input lengths", plot_dir)
     frequency_graph(output_lengths, "Tokenized output lengths", plot_dir)
 
