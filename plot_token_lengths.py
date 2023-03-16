@@ -14,7 +14,8 @@ def frequency_graph(scores, x_axis, plot_dir):
 
     print("*" * 100)
     print(
-        x_axis + ">", 
+        x_axis + ">",
+        "no of samples:", len(scores), 
         "max:", np.max(scores), 
         "min:", np.min(scores), 
         "avg:", np.mean(scores),
@@ -93,7 +94,6 @@ def main(root_dir, plot_dir, tokenizer_path='Salesforce/codet5-base'):
             sol = reindent_code(solution)
             output_lengths.append(len(tokenizer.tokenize(sol)))
 
-    del tokenizer
     frequency_graph(input_lengths, "Tokenized input lengths", plot_dir)
     frequency_graph(output_lengths, "Tokenized output lengths", plot_dir)
 
