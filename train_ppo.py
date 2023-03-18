@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import json
 from typing import Optional
 from transformers import HfArgumentParser, AutoTokenizer
 from dataclasses import dataclass, make_dataclass, field, asdict
@@ -14,9 +15,8 @@ from trl import AutoModelForSeq2SeqLMWithValueHead, PPOConfig, PPOTrainer, set_s
 import transformers
 import multiprocessing
 import torch
-from transformers.data.data_collator import default_data_collator
 
-from dataset_impl.ppo_dataset import APPSBaseDataset
+from dataset_impl.ppo_dataset import APPSBaseDataset, ppo_data_collator
 import dataset_impl.utils as dsutils
 
 import torch.multiprocessing
@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 class GenerationArguments:
     # Max generation length comes from DataTrainingArguments
     do_sample: bool = field(
+        default=True,
         metadata={"help": "Whether to sample"}
     )
     temperature: float = field(
@@ -41,7 +42,10 @@ class GenerationArguments:
 
 @dataclass
 class DataTrainingArguments:
-    
+
+    save_dir: str = field(
+        metadata={"help": 'path to save trained model checkpoints'}
+    )
     num_epochs: int = field(
         default=1,
         metadata={'help': "No of overall training epochs"}
@@ -49,10 +53,6 @@ class DataTrainingArguments:
     train_path: str = field(
         default='data/APPS/train/',
         metadata={"help": 'path to training data'}
-    )
-    save_dir: str = field(
-        default=None,
-        metadata={"help": 'path to save trained model checkpoints'}
     )
     max_src_tokens: int = field(
         default=600,
@@ -102,6 +102,13 @@ def generate_rewards(program_iterator, timeout=10):
     
     return rewards
 
+def save_checkpoint(trainer, save_dir):
+    # simplified checkpoint saving without creating model cards
+    logger.info(f"Saving checkpoint at {save_dir}")
+    trainer.accelerator.unwrap_model(trainer.model).save_pretrained(save_dir)
+    trainer.tokenizer.save_pretrained(save_dir)
+        
+
 def run_training(data_args, ppo_args, generation_args, train_data):
     ppo_config = PPOConfig(**asdict(ppo_args))
     model = AutoModelForSeq2SeqLMWithValueHead.from_pretrained(ppo_config.model_name)
@@ -112,39 +119,51 @@ def run_training(data_args, ppo_args, generation_args, train_data):
         model=model,
         tokenizer=tokenizer,
         dataset=train_data,
-        data_collator=default_data_collator
+        data_collator=ppo_data_collator
     )
 
-    generation_kwargs = asdict(generation_args).update({"max_length": data_args.max_tgt_tokens})
+    generation_kwargs = asdict(generation_args)
+    generation_kwargs.update({"max_length": data_args.max_tgt_tokens})
     epoch_iterator = trainer.dataloader
+    
+    # write all args to disk
+    all_args = asdict(data_args) | asdict(ppo_args) | asdict(generation_args)
+    args_path = os.path.join(data_args.save_dir, "args.json")
+    logger.info(f"Saving input args as {args_path}")
+
+    with open(args_path, 'w') as f:
+        json.dump(all_args, f, indent=4)
 
     # Minimal training loop
     for epoch in range(data_args.num_epochs):
-        for cur_step, batch in tqdm(enumerate(epoch_iterator)):
+        for batch in tqdm(epoch_iterator, desc=f"Epoch-{epoch}"):
             # Step 1: Generate response using the current policy
             query_tensors = batch["input_ids"]
             response_tensors = []
             
             for query in query_tensors:
                 response = trainer.generate(query, **generation_kwargs)
-                response_tensors.append(response)
+                response_tensors.append(response.squeeze())
 
             batch["response"] = [tokenizer.decode(r.squeeze(), skip_special_tokens=True) 
                                     for r in response_tensors]
             
             # Step 2: Generate Rewards
-            rewards = generate_rewards(list(zip(batch["response"], batch["problem_paths"])))
+            rewards = generate_rewards(list(zip(batch["response"], batch["problem_path"])))
+            rewards = [torch.tensor(k, dtype=torch.float).to(trainer.accelerator.device) for k in rewards]
 
             # Step 3: Run PPO Step
             stats = trainer.step(query_tensors, response_tensors, rewards)
             trainer.log_stats(stats, batch, rewards)
-        
+            
         if trainer.accelerator.is_main_process:
             checkpoint_directory = os.path.join(data_args.save_dir, f"epoch-{epoch}")
-            trainer.save_pretrained(checkpoint_directory)
+            save_checkpoint(trainer, checkpoint_directory)
+
+    
 
 def get_dataset(args): 
-    fnames = os.listdir(args.train_path) 
+    fnames = os.listdir(args.train_path)
     
     train_data = APPSBaseDataset(
         dataroot=args.train_path, 
@@ -173,6 +192,7 @@ def main():
 
     # Setup logging
     logging.basicConfig(
+        level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         handlers=[logging.StreamHandler(sys.stdout)],

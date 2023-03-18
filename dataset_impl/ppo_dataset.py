@@ -96,8 +96,8 @@ class APPSBaseDataset(torch.utils.data.Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        curr_q, curr_s, curr_a, curr_q_prefix = self.samples[idx]
-        sample = (curr_q[:150000], curr_s[:150000], curr_a[:150000], curr_q_prefix)
+        curr_q, curr_s, curr_a, curr_q_prefix, problem_path = self.samples[idx]
+        sample = (curr_q[:150000], curr_s[:150000], curr_a[:150000], curr_q_prefix, problem_path)
         return self.tokenize(sample)
     
     def tokenize(self, sample):
@@ -125,4 +125,7 @@ class APPSBaseDataset(torch.utils.data.Dataset):
             
         return out_sample 
 
+
+def ppo_data_collator(features):
+    return {k: [f[k] for f in features] for k in features[0]}
     
