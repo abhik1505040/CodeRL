@@ -21,7 +21,7 @@ import json, pdb
 from multiprocessing import Manager
 import transformers
 
-import datasets.utils as dsutils
+import dataset_impl.utils as dsutils
 
 class APPSBaseDataset(torch.utils.data.Dataset):
     def __init__(self, dataroot, problem_dirs, model, max_tokens, sample_mode, 

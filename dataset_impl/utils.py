@@ -14,7 +14,7 @@ import os
 import io
 
 
-from datasets.reindent import run as run_reindent
+from dataset_impl.reindent import run as run_reindent
 
 def reindent_code(codestr):
     """

@@ -6,7 +6,7 @@ import json
 import os
 import numpy as np
 from tqdm import tqdm
-from datasets.utils import reindent_code
+from dataset_impl.utils import reindent_code
 
 def frequency_graph(scores, x_axis, plot_dir):
     os.makedirs(plot_dir, exist_ok=True)
