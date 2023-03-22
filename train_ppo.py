@@ -139,6 +139,8 @@ def run_training(data_args, ppo_args, generation_args, train_data):
         for batch in tqdm(epoch_iterator, desc=f"Epoch-{epoch}"):
             # Step 1: Generate response using the current policy
             query_tensors = batch["input_ids"]
+            # 'query' is needed for logging
+            batch['query'] = [tokenizer.decode(q) for q in query_tensors]
             response_tensors = []
             
             for query in query_tensors:
